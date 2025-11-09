@@ -10,6 +10,9 @@ namespace UnityStandardAssets.Characters.FirstPerson
     [RequireComponent(typeof (AudioSource))]
     public class FirstPersonController : MonoBehaviour
     {
+        [SerializeField] private Color m_OriginalFogColor;
+        private bool m_OriginalFog;
+        [SerializeField] private float m_OriginalFogDensity;
         [SerializeField] private bool m_IsSwimming;
         [SerializeField] private float m_SwimGravityMultiplier;
         [SerializeField] private bool m_IsWalking;
@@ -260,21 +263,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
         }
 
 
-        private void OnControllerColliderHit(ControllerColliderHit hit)
-        {
-            Rigidbody body = hit.collider.attachedRigidbody;
-            //dont move the rigidbody if the character is on top of it
-            if (m_CollisionFlags == CollisionFlags.Below)
-            {
-                return;
-            }
-
-            if (body == null || body.isKinematic)
-            {
-                return;
-            }
-            body.AddForceAtPosition(m_CharacterController.velocity*0.1f, hit.point, ForceMode.Impulse);
-        }
         private void OnTriggerEnter(Collider coll)
         {
             Debug.Log("entered trigger with " + coll.gameObject.name);
@@ -282,8 +270,19 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 m_IsSwimming = true;
                 m_IsWalking = false;
+
+                // Save original fog settings
+                m_OriginalFog = RenderSettings.fog;
+                m_OriginalFogColor = RenderSettings.fogColor;
+                m_OriginalFogDensity = RenderSettings.fogDensity;
+
+                // Apply underwater fog settings
+                RenderSettings.fog = true;
+                RenderSettings.fogColor = new Color(0.0f, 0.4f, 0.7f, 1f);  // bluish tint
+                RenderSettings.fogDensity = 0.08f;  // tweak for visibility
             }
         }
+
         private void OnTriggerExit(Collider coll)
         {
             Debug.Log("left trigger with " + coll.gameObject.name);
@@ -291,6 +290,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 m_IsSwimming = false;
                 m_IsWalking = true;
+
+                // Restore fog settings
+                RenderSettings.fog = m_OriginalFog;
+                RenderSettings.fogColor = m_OriginalFogColor;
+                RenderSettings.fogDensity = m_OriginalFogDensity;
             }
         }
     }
