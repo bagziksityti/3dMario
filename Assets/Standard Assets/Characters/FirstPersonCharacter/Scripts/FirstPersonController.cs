@@ -10,6 +10,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
     [RequireComponent(typeof (AudioSource))]
     public class FirstPersonController : MonoBehaviour
     {
+        [SerializeField] private bool m_IsInMud;
+
         [SerializeField] private Color m_OriginalFogColor;
         private bool m_OriginalFog;
         [SerializeField] private float m_OriginalFogDensity;
@@ -100,7 +102,9 @@ namespace UnityStandardAssets.Characters.FirstPerson
         private void FixedUpdate()
         {
             float speed;
+            
             GetInput(out speed);
+            float mudspeed = speed * 0.25f;
             // always move along the camera forward as it is the direction that it being aimed at
             Vector3 desiredMove = transform.forward*m_Input.y + transform.right*m_Input.x;
 
@@ -110,8 +114,17 @@ namespace UnityStandardAssets.Characters.FirstPerson
                                m_CharacterController.height/2f, Physics.AllLayers, QueryTriggerInteraction.Ignore);
             desiredMove = Vector3.ProjectOnPlane(desiredMove, hitInfo.normal).normalized;
 
-            m_MoveDir.x = desiredMove.x*speed;
-            m_MoveDir.z = desiredMove.z*speed;
+            if (m_IsInMud)
+            {
+                m_MoveDir.x = desiredMove.x * mudspeed;
+                m_MoveDir.z = desiredMove.z * mudspeed;
+            }
+            else
+            {
+                m_MoveDir.x = desiredMove.x * speed;
+                m_MoveDir.z = desiredMove.z * speed;
+            }
+
 
 
             if (m_CharacterController.isGrounded)
@@ -270,7 +283,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 m_IsSwimming = true;
                 m_IsWalking = false;
-
                 // Save original fog settings
                 m_OriginalFog = RenderSettings.fog;
                 m_OriginalFogColor = RenderSettings.fogColor;
@@ -281,6 +293,14 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 RenderSettings.fogColor = new Color(0.0f, 0.4f, 0.7f, 1f);  // bluish tint
                 RenderSettings.fogDensity = 0.08f;  // tweak for visibility
             }
+            if (coll.gameObject.tag == "mud")
+                {
+                    m_IsInMud = true;
+                    m_IsWalking = false;
+                }
+
+              
+            
         }
 
         private void OnTriggerExit(Collider coll)
@@ -290,12 +310,20 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 m_IsSwimming = false;
                 m_IsWalking = true;
-
                 // Restore fog settings
                 RenderSettings.fog = m_OriginalFog;
                 RenderSettings.fogColor = m_OriginalFogColor;
                 RenderSettings.fogDensity = m_OriginalFogDensity;
             }
+            
+            if (coll.gameObject.tag == "mud")
+                {
+                    m_IsInMud = false;
+                    m_IsWalking = true;
+                }
+
+                
+            
         }
     }
 }
